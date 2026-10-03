@@ -17,8 +17,5 @@ class Main():
         self.distro_info = get_distro_info()
 
     def get_distro_id(self):
-        distro_id = self.distro_info.get('PRETTY_NAME', '').strip('"')
+        distro_id = self.distro_info.get('ID', '').strip('"')
         return distro_id
-
-sraka = Main()
-print(sraka.get_distro_id())
