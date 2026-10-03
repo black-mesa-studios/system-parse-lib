@@ -1,3 +1,5 @@
+import os
+
 class Main():
     def __init__(self):
         def get_distro_info():
@@ -14,6 +16,9 @@ class Main():
             return info
         self.distro_info = get_distro_info()
 
-    def get_distro_id():
-        distro_id = self.distro_info.get('ID', '').strip('"')
+    def get_distro_id(self):
+        distro_id = self.distro_info.get('PRETTY_NAME', '').strip('"')
         return distro_id
+
+sraka = Main()
+print(sraka.get_distro_id())
