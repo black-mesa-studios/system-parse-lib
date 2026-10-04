@@ -54,7 +54,7 @@ class Main():
         desktop = os.environ.get("XDG_CURRENT_DESKTOP") or os.environ.get("DESKTOP_SESSION")
         if desktop:
             return desktop
-        return "Unknown"
+        return None
 
     def get_cpu(self):
         cpu_result = subprocess.run(["lscpu"], capture_output=True, text=True)

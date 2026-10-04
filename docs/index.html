@@ -46,7 +46,7 @@ footer{margin-top:60px;color:var(--mut);font-size:.9rem}
 <h4>Getting started</h4>
 <ul><li><a href="#install">Installation</a></li><li><a href="#quickstart">Quick start</a></li></ul>
 <h4>Reference</h4>
-<ul><li><a href="#overview">Functions</a></li><li><a href="#distro">Distro</a></li><li><a href="#user">User &amp; host</a></li><li><a href="#desktop">Desktop</a></li><li><a href="#hardware">Hardware</a></li></ul>
+<ul><li><a href="#overview">Functions</a></li><li><a href="#distro">Distro</a></li><li><a href="#user">User &amp; host</a></li><li><a href="#desktop">Desktop &amp; session</a></li><li><a href="#system">System</a></li><li><a href="#hardware">Hardware</a></li></ul>
 <h4>Source</h4>
 <ul><li><a href="https://github.com/black-mesa-studios/system-parse-lib">GitHub repository</a></li><li><a href="https://github.com/black-mesa-studios/system-parse-lib/blob/main/LICENSE">License (BSD-3-Clause)</a></li></ul>
 </nav>
@@ -54,13 +54,14 @@ footer{margin-top:60px;color:var(--mut);font-size:.9rem}
 <h1 id="home"><span>[</span>system-parse-lib<span>]</span></h1>
 <p class="tag">A small Python library for reading system information on Linux.</p>
 <hr>
-<p>system-parse-lib reads your OS name, desktop environment, CPU and GPU models and vendors, and basic user details, and hands them back as plain Python values. It's one module, <code>systemparselib.py</code>, with no third-party dependencies.</p>
+<p>system-parse-lib reads your OS name, kernel version, uptime, desktop environment, session type, CPU and GPU models and vendors, and basic user details, and hands them back as plain Python values. It's one module, <code>systemparselib.py</code>, with no third-party dependencies.</p>
 
 <h2 id="requirements">Requirements</h2>
 <ul>
 <li>Linux with an <code>/etc/os-release</code> file</li>
 <li>Python 3</li>
 <li><code>lscpu</code> (from util-linux), used for CPU info</li>
+<li><code>uptime</code> (from procps), used for uptime</li>
 <li><code>lspci</code> (from pciutils), used for GPU info</li>
 </ul>
 
@@ -76,6 +77,9 @@ sysinfo = systemparselib.Main()
 
 print(sysinfo.get_pretty_name())   # e.g. Arch Linux
 print(sysinfo.get_de())            # e.g. KDE
+print(sysinfo.get_session_type())  # e.g. wayland
+print(sysinfo.get_kernel_version())  # e.g. 6.11.2-arch1-1
+print(sysinfo.get_pretty_uptime())   # e.g. up 3 hours, 12 minutes
 print(sysinfo.get_gpu())           # [{'Vendor': 'AMD', 'Model': '...'}]
 print(f"{sysinfo.get_username()}@{sysinfo.get_hostname()}")</code></pre>
 
@@ -88,6 +92,9 @@ print(f"{sysinfo.get_username()}@{sysinfo.get_hostname()}")</code></pre>
 <tr><td><code>get_username()</code></td><td><code>str</code></td><td><code>getpass.getuser()</code></td></tr>
 <tr><td><code>get_hostname()</code></td><td><code>str</code></td><td><code>socket.gethostname()</code></td></tr>
 <tr><td><code>get_de()</code></td><td><code>str</code></td><td>Environment variables</td></tr>
+<tr><td><code>get_session_type()</code></td><td><code>str</code></td><td><code>XDG_SESSION_TYPE</code></td></tr>
+<tr><td><code>get_kernel_version()</code></td><td><code>str</code></td><td><code>os.uname().release</code></td></tr>
+<tr><td><code>get_pretty_uptime()</code></td><td><code>str</code></td><td><code>uptime -p</code></td></tr>
 <tr><td><code>get_cpu()</code></td><td><code>str</code></td><td><code>lscpu</code></td></tr>
 <tr><td><code>get_gpu()</code></td><td><code>list[dict]</code></td><td><code>lspci</code></td></tr>
 </table></div>
@@ -105,9 +112,17 @@ print(f"{sysinfo.get_username()}@{sysinfo.get_hostname()}")</code></pre>
 <h3><code>get_hostname()</code></h3>
 <p>Returns the machine's hostname.</p>
 
-<h2 id="desktop">Desktop</h2>
+<h2 id="desktop">Desktop &amp; session</h2>
 <h3><code>get_de()</code></h3>
 <p>Returns the desktop environment from <code>XDG_CURRENT_DESKTOP</code>, falling back to <code>DESKTOP_SESSION</code>. Returns <code>"Unknown"</code> when neither is set, for example over SSH or in a TTY.</p>
+<h3><code>get_session_type()</code></h3>
+<p>Returns the session type from <code>XDG_SESSION_TYPE</code>, such as <code>wayland</code>, <code>x11</code> or <code>tty</code>. If the variable isn't set, it returns the string <code>"Could not retrieve session type."</code>.</p>
+
+<h2 id="system">System</h2>
+<h3><code>get_kernel_version()</code></h3>
+<p>Returns the kernel release string, such as <code>6.11.2-arch1-1</code>.</p>
+<h3><code>get_pretty_uptime()</code></h3>
+<p>Returns the human-readable output of <code>uptime -p</code>, such as <code>up 3 hours, 12 minutes</code>. If the command fails, it returns a string starting with <code>"Could not retrieve uptime:"</code> instead of raising.</p>
 
 <h2 id="hardware">Hardware</h2>
 <h3><code>get_cpu()</code></h3>
