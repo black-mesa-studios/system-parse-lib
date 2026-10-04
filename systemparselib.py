@@ -24,6 +24,24 @@ class Main():
         username = getpass.getuser()
         return username
 
+    def get_kernel_version(self):
+        kernel_version = os.uname().release
+        return kernel_version
+
+    def get_pretty_uptime(self):
+        try:
+            output = subprocess.check_output(['uptime', '-p'], text=True)
+            return output.strip()
+        except Exception as e:
+            return f"Could not retrieve uptime: {e}"
+
+    def get_session_type(self):
+        session_type = os.getenv('XDG_SESSION_TYPE')
+        if session_type:
+            return session_type
+        else:
+            return "Could not retrieve session type."
+    
     def get_hostname(self):
         hostname = socket.gethostname()
         return hostname
