@@ -48,7 +48,7 @@ class Main():
             if "Model name" in line:
                 model = line.split(':')[-1].strip()
                 cpu = model
-
+        return cpu
     def get_gpu(self):
         result = subprocess.run(["lspci"], capture_output=True, text=True)
         output = result.stdout
@@ -68,5 +68,3 @@ class Main():
                     gpus.append({'Vendor': 'Intel', 'Model': model})
                 pass
         return gpus
-
-        return cpu
