@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>system-parse-lib: Documentation</title>
+<style>
+:root{--bg:#f6f6f4;--fg:#1b1b1f;--mut:#62626b;--line:#d8d8d4;--acc:#7a3fd1;--code:#ebebe7;--side:#efefec;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15151a;--fg:#e6e6ea;--mut:#9a9aa5;--line:#2c2c35;--acc:#b48cff;--code:#1f1f27;--side:#1a1a20}}
+:root[data-theme="dark"]{--bg:#15151a;--fg:#e6e6ea;--mut:#9a9aa5;--line:#2c2c35;--acc:#b48cff;--code:#1f1f27;--side:#1a1a20}
+html{scroll-padding-top:env(safe-area-inset-top,0px);scroll-behavior:smooth}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;min-height:100vh}
+a{color:var(--acc)}
+nav{width:250px;flex:none;background:var(--side);border-right:1px solid var(--line);padding:24px 20px;position:sticky;top:0;height:100vh;overflow-y:auto}
+nav h4{margin:22px 0 6px;font-size:.95rem}
+nav h4:first-child{margin-top:0}
+nav ul{list-style:none;margin:0;padding:0 0 0 4px}
+nav li{margin:3px 0}
+nav a{text-decoration:none;color:var(--mut)}
+nav a:hover{color:var(--acc);text-decoration:underline}
+main{flex:1;min-width:0;max-width:860px;padding:40px 48px 80px}
+h1{font-size:2.1rem;margin:0 0 4px}
+h1 span{color:var(--acc)}
+h2{font-size:1.4rem;margin:44px 0 12px;padding-top:8px}
+h3{font-size:1.1rem;margin:30px 0 6px}
+hr{border:0;border-top:1px solid var(--line);margin:22px 0}
+code,pre{font-family:ui-monospace,"JetBrains Mono",Menlo,Consolas,monospace;font-size:.88em}
+code{background:var(--code);padding:1px 6px;border-radius:4px}
+pre{background:var(--code);border:1px solid var(--line);border-radius:6px;padding:14px 16px;overflow-x:auto;line-height:1.5}
+pre code{background:none;padding:0}
+.t{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.95rem}
+th,td{text-align:left;padding:8px 12px;border:1px solid var(--line);vertical-align:top}
+th{background:var(--side)}
+.tag{color:var(--mut);font-size:.9rem}
+footer{margin-top:60px;color:var(--mut);font-size:.9rem}
+@media(max-width:760px){body{display:block}nav{position:static;width:auto;height:auto;border-right:0;border-bottom:1px solid var(--line)}main{padding:24px 18px 60px}}
+</style>
+</head>
+<body>
+<nav>
+<h4>About system-parse-lib</h4>
+<ul><li><a href="#home">Home</a></li><li><a href="#requirements">Requirements</a></li></ul>
+<h4>Getting started</h4>
+<ul><li><a href="#install">Installation</a></li><li><a href="#quickstart">Quick start</a></li></ul>
+<h4>Reference</h4>
+<ul><li><a href="#overview">Functions</a></li><li><a href="#distro">Distro</a></li><li><a href="#user">User &amp; host</a></li><li><a href="#desktop">Desktop</a></li><li><a href="#hardware">Hardware</a></li></ul>
+<h4>Source</h4>
+<ul><li><a href="https://github.com/black-mesa-studios/system-parse-lib">GitHub repository</a></li><li><a href="https://github.com/black-mesa-studios/system-parse-lib/blob/main/LICENSE">License (BSD-3-Clause)</a></li></ul>
+</nav>
+<main>
+<h1 id="home"><span>[</span>system-parse-lib<span>]</span></h1>
+<p class="tag">A small Python library for reading system information on Linux.</p>
+<hr>
+<p>system-parse-lib reads your OS name, desktop environment, CPU and GPU models and vendors, and basic user details, and hands them back as plain Python values. It's one module, <code>systemparselib.py</code>, with no third-party dependencies.</p>
+
+<h2 id="requirements">Requirements</h2>
+<ul>
+<li>Linux with an <code>/etc/os-release</code> file</li>
+<li>Python 3</li>
+<li><code>lscpu</code> (from util-linux), used for CPU info</li>
+<li><code>lspci</code> (from pciutils), used for GPU info</li>
+</ul>
+
+<h2 id="install">Installation</h2>
+<p>There's no package yet. Clone the repository and copy <code>systemparselib.py</code> next to your script:</p>
+<pre><code>git clone https://github.com/black-mesa-studios/system-parse-lib.git
+cp system-parse-lib/systemparselib.py ./</code></pre>
+
+<h2 id="quickstart">Quick start</h2>
+<pre><code>import systemparselib
+
+sysinfo = systemparselib.Main()
+
+print(sysinfo.get_pretty_name())   # e.g. Arch Linux
+print(sysinfo.get_de())            # e.g. KDE
+print(sysinfo.get_gpu())           # [{'Vendor': 'AMD', 'Model': '...'}]
+print(f"{sysinfo.get_username()}@{sysinfo.get_hostname()}")</code></pre>
+
+<h2 id="overview">Functions</h2>
+<p>Everything lives on the <code>Main</code> class. Creating an instance reads <code>/etc/os-release</code> once; each method then reads its own data when called.</p>
+<div class="t"><table>
+<tr><th>Method</th><th>Returns</th><th>Source</th></tr>
+<tr><td><code>get_distro_id()</code></td><td><code>str</code></td><td><code>ID</code> in /etc/os-release</td></tr>
+<tr><td><code>get_pretty_name()</code></td><td><code>str</code></td><td><code>PRETTY_NAME</code> in /etc/os-release</td></tr>
+<tr><td><code>get_username()</code></td><td><code>str</code></td><td><code>getpass.getuser()</code></td></tr>
+<tr><td><code>get_hostname()</code></td><td><code>str</code></td><td><code>socket.gethostname()</code></td></tr>
+<tr><td><code>get_de()</code></td><td><code>str</code></td><td>Environment variables</td></tr>
+<tr><td><code>get_cpu()</code></td><td><code>str</code></td><td><code>lscpu</code></td></tr>
+<tr><td><code>get_gpu()</code></td><td><code>list[dict]</code></td><td><code>lspci</code></td></tr>
+</table></div>
+
+<h2 id="distro">Distro</h2>
+<h3><code>get_distro_id()</code></h3>
+<p>Returns the distro's short ID with quotes removed, such as <code>arch</code>, <code>ubuntu</code> or <code>fedora</code>. Useful for picking a package manager.</p>
+<h3><code>get_pretty_name()</code></h3>
+<p>Returns the human-readable OS name, such as <code>Arch Linux</code> or <code>Ubuntu 24.04 LTS</code>.</p>
+<p class="tag">If <code>/etc/os-release</code> doesn't exist, both distro methods raise <code>AttributeError</code>, so check for that on unusual systems.</p>
+
+<h2 id="user">User &amp; host</h2>
+<h3><code>get_username()</code></h3>
+<p>Returns the name of the current user.</p>
+<h3><code>get_hostname()</code></h3>
+<p>Returns the machine's hostname.</p>
+
+<h2 id="desktop">Desktop</h2>
+<h3><code>get_de()</code></h3>
+<p>Returns the desktop environment from <code>XDG_CURRENT_DESKTOP</code>, falling back to <code>DESKTOP_SESSION</code>. Returns <code>"Unknown"</code> when neither is set, for example over SSH or in a TTY.</p>
+
+<h2 id="hardware">Hardware</h2>
+<h3><code>get_cpu()</code></h3>
+<p>Returns the CPU model name reported by <code>lscpu</code>, such as <code>AMD Ryzen 5 5600X 6-Core Processor</code>.</p>
+<h3><code>get_gpu()</code></h3>
+<p>Returns a list with one dictionary per detected GPU. Each has a <code>Vendor</code> (<code>NVIDIA</code>, <code>AMD</code> or <code>Intel</code>) and a <code>Model</code>. Only VGA-class devices from those three vendors are listed, so the list is empty on a machine with none.</p>
+<pre><code>[{'Vendor': 'NVIDIA', 'Model': 'GeForce GTX 1650'}]</code></pre>
+
+<hr>
+<footer>system-parse-lib is released under the BSD 3-Clause License. Copyright 2026 Black Mesa Studios. <a href="https://github.com/black-mesa-studios/system-parse-lib">View on GitHub</a>.</footer>
+</main>
+</body>
+</html>
