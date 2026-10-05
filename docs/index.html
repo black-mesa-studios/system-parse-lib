@@ -54,15 +54,13 @@ footer{margin-top:60px;color:var(--mut);font-size:.9rem}
 <h1 id="home"><span>[</span>system-parse-lib<span>]</span></h1>
 <p class="tag">A small Python library for reading system information on Linux.</p>
 <hr>
-<p>system-parse-lib reads your OS name, kernel version, uptime, desktop environment, session type, CPU and GPU models and vendors, and basic user details, and hands them back as plain Python values. It's one module, <code>systemparselib.py</code>, with no third-party dependencies.</p>
+<p>system-parse-lib reads your OS name, kernel version, uptime, desktop environment, session type, CPU and GPU models and vendors, and basic user details, and hands them back as plain Python values. It's one module, <code>systemparselib.py</code>. It has no third-party dependencies and doesn't call any external commands: everything is read straight from <code>/etc</code>, <code>/proc</code> and <code>/sys</code>.</p>
 
 <h2 id="requirements">Requirements</h2>
 <ul>
-<li>Linux with an <code>/etc/os-release</code> file</li>
-<li>Python 3</li>
-<li><code>lscpu</code> (from util-linux), used for CPU info</li>
-<li><code>uptime</code> (from procps), used for uptime</li>
-<li><code>lspci</code> (from pciutils), used for GPU info</li>
+<li>Linux</li>
+<li>Python 3.10 or newer</li>
+<li>Optional: a <code>pci.ids</code> file (from the <code>hwdata</code> or <code>pciids</code> package) so <code>get_gpu()</code> can show real model names</li>
 </ul>
 
 <h2 id="install">Installation</h2>
@@ -80,23 +78,24 @@ print(sysinfo.get_de())            # e.g. KDE
 print(sysinfo.get_session_type())  # e.g. wayland
 print(sysinfo.get_kernel_version())  # e.g. 6.11.2-arch1-1
 print(sysinfo.get_pretty_uptime())   # e.g. up 3 hours, 12 minutes
-print(sysinfo.get_gpu())           # [{'Vendor': 'AMD', 'Model': '...'}]
+print(sysinfo.get_gpu())           # [GPU(vendor='AMD', model='...', driver='amdgpu')]
 print(f"{sysinfo.get_username()}@{sysinfo.get_hostname()}")</code></pre>
 
 <h2 id="overview">Functions</h2>
 <p>Everything lives on the <code>Main</code> class. Creating an instance reads <code>/etc/os-release</code> once; each method then reads its own data when called.</p>
 <div class="t"><table>
 <tr><th>Method</th><th>Returns</th><th>Source</th></tr>
-<tr><td><code>get_distro_id()</code></td><td><code>str</code></td><td><code>ID</code> in /etc/os-release</td></tr>
-<tr><td><code>get_pretty_name()</code></td><td><code>str</code></td><td><code>PRETTY_NAME</code> in /etc/os-release</td></tr>
+<tr><td><code>get_distro_id()</code></td><td><code>str | None</code></td><td><code>ID</code> in /etc/os-release</td></tr>
+<tr><td><code>get_pretty_name()</code></td><td><code>str | None</code></td><td><code>PRETTY_NAME</code> in /etc/os-release</td></tr>
 <tr><td><code>get_username()</code></td><td><code>str</code></td><td><code>getpass.getuser()</code></td></tr>
 <tr><td><code>get_hostname()</code></td><td><code>str</code></td><td><code>socket.gethostname()</code></td></tr>
-<tr><td><code>get_de()</code></td><td><code>str</code></td><td>Environment variables</td></tr>
+<tr><td><code>get_de()</code></td><td><code>str | None</code></td><td>Environment variables</td></tr>
 <tr><td><code>get_session_type()</code></td><td><code>str</code></td><td><code>XDG_SESSION_TYPE</code></td></tr>
 <tr><td><code>get_kernel_version()</code></td><td><code>str</code></td><td><code>os.uname().release</code></td></tr>
-<tr><td><code>get_pretty_uptime()</code></td><td><code>str</code></td><td><code>uptime -p</code></td></tr>
-<tr><td><code>get_cpu()</code></td><td><code>str</code></td><td><code>lscpu</code></td></tr>
-<tr><td><code>get_gpu()</code></td><td><code>list[dict]</code></td><td><code>lspci</code></td></tr>
+<tr><td><code>get_uptime_seconds()</code></td><td><code>int | None</code></td><td><code>/proc/uptime</code></td></tr>
+<tr><td><code>get_pretty_uptime()</code></td><td><code>str | None</code></td><td><code>/proc/uptime</code></td></tr>
+<tr><td><code>get_cpu()</code></td><td><code>str | None</code></td><td><code>/proc/cpuinfo</code></td></tr>
+<tr><td><code>get_gpu()</code></td><td><code>list[GPU]</code></td><td><code>/sys/bus/pci/devices</code></td></tr>
 </table></div>
 
 <h2 id="distro">Distro</h2>
@@ -104,7 +103,7 @@ print(f"{sysinfo.get_username()}@{sysinfo.get_hostname()}")</code></pre>
 <p>Returns the distro's short ID with quotes removed, such as <code>arch</code>, <code>ubuntu</code> or <code>fedora</code>. Useful for picking a package manager.</p>
 <h3><code>get_pretty_name()</code></h3>
 <p>Returns the human-readable OS name, such as <code>Arch Linux</code> or <code>Ubuntu 24.04 LTS</code>.</p>
-<p class="tag">If <code>/etc/os-release</code> doesn't exist, both distro methods raise <code>AttributeError</code>, so check for that on unusual systems.</p>
+<p class="tag">Both return <code>None</code> if <code>/etc/os-release</code> doesn't exist.</p>
 
 <h2 id="user">User &amp; host</h2>
 <h3><code>get_username()</code></h3>
@@ -114,26 +113,34 @@ print(f"{sysinfo.get_username()}@{sysinfo.get_hostname()}")</code></pre>
 
 <h2 id="desktop">Desktop &amp; session</h2>
 <h3><code>get_de()</code></h3>
-<p>Returns the desktop environment from <code>XDG_CURRENT_DESKTOP</code>, falling back to <code>DESKTOP_SESSION</code>. Returns <code>"Unknown"</code> when neither is set, for example over SSH or in a TTY.</p>
+<p>Returns the desktop environment from <code>XDG_CURRENT_DESKTOP</code>, falling back to <code>DESKTOP_SESSION</code>. Returns <code>None</code> when neither is set, for example over SSH or in a TTY.</p>
 <h3><code>get_session_type()</code></h3>
 <p>Returns the session type from <code>XDG_SESSION_TYPE</code>, such as <code>wayland</code>, <code>x11</code> or <code>tty</code>. If the variable isn't set, it returns the string <code>"Could not retrieve session type."</code>.</p>
 
 <h2 id="system">System</h2>
 <h3><code>get_kernel_version()</code></h3>
 <p>Returns the kernel release string, such as <code>6.11.2-arch1-1</code>.</p>
+<h3><code>get_uptime_seconds()</code></h3>
+<p>Returns the time since boot in whole seconds, read from <code>/proc/uptime</code>. Returns <code>None</code> if it can't be read.</p>
 <h3><code>get_pretty_uptime()</code></h3>
-<p>Returns the human-readable output of <code>uptime -p</code>, such as <code>up 3 hours, 12 minutes</code>. If the command fails, it returns a string starting with <code>"Could not retrieve uptime:"</code> instead of raising.</p>
+<p>Returns the uptime as readable text, such as <code>up 3 hours, 12 minutes</code> or <code>up 2 days, 1 hour, 5 minutes</code>. Returns <code>None</code> if the uptime can't be read.</p>
 
 <h2 id="hardware">Hardware</h2>
 <h3><code>get_cpu()</code></h3>
-<p>Returns the CPU model name reported by <code>lscpu</code>, such as <code>AMD Ryzen 5 5600X 6-Core Processor</code>.</p>
+<p>Returns the CPU model name from <code>/proc/cpuinfo</code>, such as <code>AMD Ryzen 5 5600X 6-Core Processor</code>. Returns <code>None</code> if the file doesn't exist, and an empty string if it has no <code>model name</code> line (some ARM systems).</p>
 <h3><code>get_gpu()</code></h3>
-<p>Returns a list with one dictionary per detected GPU. Each has a <code>Vendor</code> (<code>NVIDIA</code>, <code>AMD</code> or <code>Intel</code>) and a <code>Model</code>. Only VGA-class devices from those three vendors are listed, so the list is empty on a machine with none.</p>
-<pre><code>[{'Vendor': 'NVIDIA', 'Model': 'GeForce GTX 1650'}]</code></pre>
+<p>Returns a list with one <code>GPU</code> object per display device found in <code>/sys/bus/pci/devices</code>. It returns an empty list if there are none.</p>
+<div class="t"><table>
+<tr><th>Field</th><th>Type</th><th>Description</th></tr>
+<tr><td><code>vendor</code></td><td><code>str</code></td><td><code>NVIDIA</code>, <code>AMD</code> or <code>Intel</code>. Any other vendor is shown as its raw PCI vendor ID, like <code>1234</code>.</td></tr>
+<tr><td><code>model</code></td><td><code>str</code></td><td>Model name from <code>pci.ids</code>. Falls back to <code>Device &lt;id&gt;</code> if no <code>pci.ids</code> file is found.</td></tr>
+<tr><td><code>driver</code></td><td><code>str | None</code></td><td>Kernel driver in use, such as <code>amdgpu</code> or <code>nvidia</code>, or <code>None</code> if none is bound.</td></tr>
+</table></div>
+<pre><code>[GPU(vendor='NVIDIA', model='GeForce GTX 1650', driver='nvidia')]</code></pre>
+<p>For a plain dictionary, use <code>dataclasses.asdict(gpu)</code>.</p>
 
 <hr>
 <footer>system-parse-lib is released under the BSD 3-Clause License. Copyright 2026 Black Mesa Studios. <a href="https://github.com/black-mesa-studios/system-parse-lib">View on GitHub</a>.</footer>
 </main>
 </body>
 </html>
-
