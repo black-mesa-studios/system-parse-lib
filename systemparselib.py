@@ -67,8 +67,9 @@ class Main():
         self.distro_info = get_distro_info()
 
     def get_distro_id(self):
-        distro_id = self.distro_info.get('ID', '').strip('"')
-        return distro_id
+        if not self.distro_info:
+            return None
+        return self.distro_info.get('ID', '').strip('"')
     
     def get_username(self):
         username = getpass.getuser()
@@ -78,12 +79,30 @@ class Main():
         kernel_version = os.uname().release
         return kernel_version
 
-    def get_pretty_uptime(self):
+    def get_uptime_seconds(self):
         try:
-            output = subprocess.check_output(['uptime', '-p'], text=True)
-            return output.strip()
-        except Exception as e:
-            return f"Could not retrieve uptime: {e}"
+            with open("/proc/uptime") as f:
+                return int(float(f.read().split()[0]))
+        except (OSError, ValueError, IndexError):
+            return None
+    
+    def get_pretty_uptime(self):
+        seconds = self.get_uptime_seconds()
+        if seconds is None:
+            return None
+        
+        days, rem = divmod(seconds, 86400)
+        hours, rem = divmod(rem, 3600)
+        minutes = rem // 60
+
+        parts = []
+        if days:
+            parts.append(f"{days} day{'s' if days != 1 else ''}")
+        if hours:
+            parts.append(f"{hours} hour{'s' if hours != 1 else ''}")
+        if minutes or not parts:
+            parts.append(f"{minutes} minute{'s' if minutes != 1 else ''}")
+        return "up " + ", ".join(parts)
 
     def get_session_type(self):
         session_type = os.getenv('XDG_SESSION_TYPE')
@@ -97,8 +116,9 @@ class Main():
         return hostname
 
     def get_pretty_name(self):
-        pretty_name = self.distro_info.get('PRETTY_NAME', '').strip('"')
-        return pretty_name
+        if not self.distro_info:
+            return None
+        return self.distro_info.get('PRETTY_NAME', '').strip('"') 
 
     def get_de(self):
         desktop = os.environ.get("XDG_CURRENT_DESKTOP") or os.environ.get("DESKTOP_SESSION")
