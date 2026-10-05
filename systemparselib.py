@@ -1,4 +1,11 @@
 import os, subprocess, getpass, socket
+from dataclasses import dataclass, asdict
+
+@dataclass
+class GPU:
+    vendor: str
+    model: str
+    driver: str | None = None
 
 class Main():
     def __init__(self):
@@ -57,16 +64,17 @@ class Main():
         return None
 
     def get_cpu(self):
-        cpu_result = subprocess.run(["lscpu"], capture_output=True, text=True)
-        cpu_output = cpu_result.stdout
-
         cpu = ""
-
-        for line in cpu_output.splitlines():
-            if "Model name" in line:
-                model = line.split(':')[-1].strip()
-                cpu = model
+        try:
+            with open("/proc/cpuinfo", "r", encoding="utf-8") as file:
+                for line in file:
+                    if "model name" in line.lower():
+                        cpu = line.split(":", 1)[-1].strip()
+                        break
+        except FileNotFoundError:
+            return None
         return cpu
+
     def get_gpu(self):
         result = subprocess.run(["lspci"], capture_output=True, text=True)
         output = result.stdout
