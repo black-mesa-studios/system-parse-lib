@@ -1,11 +1,54 @@
 import os, subprocess, getpass, socket
 from dataclasses import dataclass, asdict
+from functools import cache
+
+PCI_DEVICES = "/sys/bus/pci/devices"
+PCI_IDS_PATHS = (
+    "/usr/share/hwdata/pci.ids",
+    "/usr/share/misc/pci.ids",
+    "/usr/share/pci.ids",
+)
+VENDORS = {"10de": "NVIDIA", "1002": "AMD", "8086": "Intel"}
 
 @dataclass
 class GPU:
     vendor: str
     model: str
     driver: str | None = None
+
+def _read_sysfs(path):
+    try:
+        with open(path) as f:
+            return f.read().strip()
+    except OSError:
+        return None
+
+@cache
+def _load_pci_ids():
+    """Returns {(vendor_id, device_id): name}"""
+    names = {}
+    for path in PCI_IDS_PATHS:
+        try:
+            f = open(path, encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        with f:
+            vendor = None
+            for line in f:
+                if line.startswith("#") or not line.strip():
+                    continue
+                if line.startswith("C "):
+                    break
+                if line.startswith("\t\t"):
+                    continue
+                if line.startswith("\t"):
+                    dev_id, _, name = line.strip().partition("  ")
+                    if vendor:
+                        names[(vendor, dev_id)] = name
+                else:
+                    vendor = line.split()[0]
+        break
+    return names
 
 class Main():
     def __init__(self):
@@ -76,21 +119,33 @@ class Main():
         return cpu
 
     def get_gpu(self):
-        result = subprocess.run(["lspci"], capture_output=True, text=True)
-        output = result.stdout
-
         gpus = []
+        try:
+            devices = sorted(os.listdir(PCI_DEVICES))
+        except OSError:
+            return gpus
 
-        for line in output.splitlines():
-            if "VGA" in line:
-                if "NVIDIA" in line:
-                    model = line.split('[')[-1].split(']')[0]
-                    gpus.append({'Vendor': 'NVIDIA', 'Model': model})
-                elif "AMD" in line:
-                    model = line.split('[')[-1].split(']')[0]
-                    gpus.append({'Vendor': 'AMD', 'Model': model})
-                elif "Intel" in line:
-                    model = line.split('[')[-1].split(']')[0]
-                    gpus.append({'Vendor': 'Intel', 'Model': model})
-                pass
+        ids = _load_pci_ids()
+
+        for dev in devices:
+            base = os.path.join(PCI_DEVICES, dev)
+
+            pci_class = _read_sysfs(base + "/class")
+            if not pci_class or not pci_class.startswith("0x03"):
+                continue
+
+            vendor_id = (_read_sysfs(base + "/vendor") or "")[2:]
+            device_id = (_read_sysfs(base + "/device") or "")[2:]
+
+            vendor = VENDORS.get(vendor_id, vendor_id)
+
+            name = ids.get((vendor_id, device_id), f"Device {device_id}")
+            model = name.split('[')[-1].split(']')[0] if '[' in name else name
+
+            driver = None
+            if os.path.exists(base + "/driver"):
+                driver = os.path.basename(os.path.realpath(base + "/driver"))
+
+            gpus.append(GPU(vendor=vendor, model=model, driver=driver))
+
         return gpus
