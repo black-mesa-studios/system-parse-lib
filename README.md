@@ -1,6 +1,6 @@
 # system-parse-lib
 
-A small Python library for reading system information on Linux: OS name, kernel version, uptime, desktop environment, session type, CPU and GPU models and vendors, and basic user details. One module, no third-party dependencies.
+A small Python library for reading system information on Linux: OS name, kernel version, uptime, desktop environment, session type, CPU and GPU models and vendors, and basic user details. One module, no third-party dependencies, and no external commands: everything is read from `/etc`, `/proc` and `/sys`.
 
 ![License](https://img.shields.io/badge/license-BSD--3--Clause-blue)
 ![Python](https://img.shields.io/badge/python-3-yellow)
@@ -12,17 +12,17 @@ A small Python library for reading system information on Linux: OS name, kernel 
 
 - Distro ID and pretty name, read from `/etc/os-release`
 - Current username and hostname
-- Kernel version and uptime
+- Kernel version and uptime (as seconds or readable text)
 - Desktop environment, from `XDG_CURRENT_DESKTOP` or `DESKTOP_SESSION`
 - Session type (Wayland, X11, tty), from `XDG_SESSION_TYPE`
-- CPU model, via `lscpu`
-- GPU vendor and model (NVIDIA, AMD, Intel), via `lspci`
+- CPU model, from `/proc/cpuinfo`
+- GPUs with vendor, model and kernel driver, from `/sys/bus/pci/devices`
 
 ## Requirements
 
-- Linux with an `/etc/os-release` file
-- Python 3
-- `lscpu` (util-linux), `lspci` (pciutils) and `uptime` (procps)
+- Linux
+- Python 3.10 or newer
+- Optional: a `pci.ids` file (from the `hwdata` or `pciids` package) so `get_gpu()` can show real model names
 
 ## Installation
 
@@ -46,7 +46,7 @@ print(sysinfo.get_session_type())  # e.g. wayland
 print(sysinfo.get_kernel_version())  # e.g. 6.11.2-arch1-1
 print(sysinfo.get_pretty_uptime())   # e.g. up 3 hours, 12 minutes
 print(sysinfo.get_cpu())           # e.g. AMD Ryzen 5 5600X 6-Core Processor
-print(sysinfo.get_gpu())           # e.g. [{'Vendor': 'AMD', 'Model': '...'}]
+print(sysinfo.get_gpu())           # e.g. [GPU(vendor='AMD', model='...', driver='amdgpu')]
 print(f"{sysinfo.get_username()}@{sysinfo.get_hostname()}")
 ```
 
@@ -56,16 +56,17 @@ All functions live on the `Main` class.
 
 | Function | Returns | Description |
 | --- | --- | --- |
-| `get_distro_id()` | `str` | Short distro ID, like `arch` or `ubuntu` |
-| `get_pretty_name()` | `str` | Human-readable OS name |
+| `get_distro_id()` | `str \| None` | Short distro ID, like `arch` or `ubuntu` |
+| `get_pretty_name()` | `str \| None` | Human-readable OS name |
 | `get_username()` | `str` | Current user's name |
 | `get_hostname()` | `str` | Machine hostname |
-| `get_de()` | `str` | Desktop environment, or `"Unknown"` if none is set |
+| `get_de()` | `str \| None` | Desktop environment, or `None` if none is set |
 | `get_session_type()` | `str` | Session type from `XDG_SESSION_TYPE`, like `wayland` or `x11` |
 | `get_kernel_version()` | `str` | Kernel release, like `6.11.2-arch1-1` |
-| `get_pretty_uptime()` | `str` | Human-readable uptime, like `up 3 hours, 12 minutes` |
-| `get_cpu()` | `str` | CPU model name |
-| `get_gpu()` | `list[dict]` | One `{'Vendor': ..., 'Model': ...}` per detected GPU |
+| `get_uptime_seconds()` | `int \| None` | Seconds since boot |
+| `get_pretty_uptime()` | `str \| None` | Readable uptime, like `up 3 hours, 12 minutes` |
+| `get_cpu()` | `str \| None` | CPU model name |
+| `get_gpu()` | `list[GPU]` | One `GPU(vendor, model, driver)` per display device |
 
 Full details are in the [documentation](https://black-mesa-studios.github.io/system-parse-lib/).
 
@@ -80,5 +81,3 @@ python3 test.py
 ## License
 
 Released under the [BSD 3-Clause License](LICENSE). Copyright 2026 Black Mesa Studios.
-
-
