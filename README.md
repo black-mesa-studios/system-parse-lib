@@ -2,8 +2,9 @@
 
 A small Python library for reading system information on Linux: OS name, kernel version, uptime, desktop environment, session type, CPU and GPU models and vendors, and basic user details. One module, no third-party dependencies, and no external commands: everything is read from `/etc`, `/proc` and `/sys`.
 
+[![PyPI](https://img.shields.io/pypi/v/system-parse-lib)](https://pypi.org/project/system-parse-lib/)
 ![License](https://img.shields.io/badge/license-BSD--3--Clause-blue)
-![Python](https://img.shields.io/badge/python-3-yellow)
+![Python](https://img.shields.io/badge/python-3.10%2B-yellow)
 ![Platform](https://img.shields.io/badge/platform-Linux-lightgrey)
 
 **Documentation:** https://black-mesa-studios.github.io/system-parse-lib/
@@ -26,7 +27,13 @@ A small Python library for reading system information on Linux: OS name, kernel 
 
 ## Installation
 
-There's no package yet. Clone the repo and copy `systemparselib.py` next to your script:
+Install it from [PyPI](https://pypi.org/project/system-parse-lib/):
+
+```
+pip install system-parse-lib
+```
+
+Or use the source directly: clone the repo and copy `systemparselib.py` next to your script.
 
 ```
 git clone https://github.com/black-mesa-studios/system-parse-lib.git
